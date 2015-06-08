@@ -1,5 +1,5 @@
 name = Bean Configure
-description = Easy access to the configure block form from within the bean pages.
+description = Provides access to the configure block form from within the bean pages.
 core = 7.x
 dependencies[] = bean
 package = Bean
