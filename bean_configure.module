@@ -106,14 +106,15 @@ function _bean_configure_bean_list() {
 
     $delta = str_replace('block/', '', $bean['title']['data']['#href']);
 
-    if (user_access("configure any {$bean['type']} bean")) {
-      $link = array(
+    $links = array(
+      'configure' => array(
         'title' => 'configure',
         'href' => 'block/' . $delta . '/configure',
-      );
+        'query' => drupal_get_destination(),
+      ),
+    );
 
-      $bean['operations']['data']['#links'] = array($link) + $bean['operations']['data']['#links'];
-    }
+    $bean['operations']['data']['#links'] = $links + $bean['operations']['data']['#links'];
   }
 
   return $output;
