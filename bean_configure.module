@@ -99,6 +99,11 @@ function _bean_configure_bean_list() {
 
   foreach ($output['bean_content']['#rows'] as &$bean) {
 
+    // Add the configure link only if the user has the right permissions.
+    if (!user_access("configure any {$bean['type']} bean") && !user_access('administer beans')) {
+      continue;
+    }
+
     $delta = str_replace('block/', '', $bean['title']['data']['#href']);
 
     if (user_access("configure any {$bean['type']} bean")) {
