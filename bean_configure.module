@@ -1,0 +1,115 @@
+<?php
+/**
+ * @file
+ * Module file for the bean_configure module.
+ */
+
+/**
+ * Implements hook_permission().
+ */
+function bean_configure_permission() {
+  $permissions = array();
+
+  // Add a configure permission for each bean type.
+  bean_reset(TRUE);
+  foreach (bean_get_types() as $bean_type) {
+    $bean_type_name = check_plain($bean_type->type);
+    $permissions["configure any $bean_type_name bean"] = array(
+      'title' => t('%type_name: Configure Bean', array('%type_name' => $bean_type->getLabel())),
+    );
+  }
+
+  return $permissions;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function bean_configure_menu() {
+  $items = array();
+
+  $items['block/%bean_delta/configure'] = array(
+    'title' => 'Configure',
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+    'page callback' => '_bean_configure_block_admin_configure_page',
+    'page arguments' => array(1),
+    'access callback' => '_bean_configure_block_admin_configure_access',
+    'access arguments' => array(1),
+  );
+
+  return $items;
+}
+
+/**
+ * Page callback for the configure bean page.
+ *
+ * It essentially gets the form defined by the block module. The only reason
+ * we don't use the drupal_get_form function as a callback, as we would normally
+ * do, is that Drupal autoloads and passes the bean entity from the url while
+ * block_admin_configure expects the block delta instead.
+ */
+function _bean_configure_block_admin_configure_page($bean) {
+  require_once drupal_get_path('module', 'block') . '/block.admin.inc';
+  return drupal_get_form('block_admin_configure', 'bean', $bean->delta);
+}
+
+/**
+ * Access callback for the configure bean page.
+ */
+function _bean_configure_block_admin_configure_access($bean) {
+  return user_access('administer beans') || user_access("configure any {$bean->type} bean");
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function bean_configure_form_block_admin_configure_alter(&$form, &$form_state, $form_id) {
+  // We want to do any alterations only for "bean" blocks.
+  if ($form['module']['#value'] !== 'bean') {
+    return;
+  }
+
+  // Add custom submit callback.
+  $form['#submit'][] = '_bean_configure_block_admin_configure_submit';
+}
+
+/**
+ * Custom submit callback for the block_admin_configure form.
+ */
+function _bean_configure_block_admin_configure_submit($form, &$form_state) {
+  // Redirect to the block management page provided by the "bean" module instead
+  // of the one provided by the "block" module.
+  $form_state['redirect'] = 'admin/content/blocks';
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function bean_configure_menu_alter(&$items) {
+  $items['admin/content/blocks']['page callback'] = '_bean_configure_bean_list';
+}
+
+
+/**
+ * Adds a link to configure each bean.
+ */
+function _bean_configure_bean_list() {
+  $output = bean_list();
+
+  foreach ($output['bean_content']['#rows'] as &$bean) {
+
+    $delta = str_replace('block/', '', $bean['title']['data']['#href']);
+
+    if (user_access("configure any {$bean['type']} bean")) {
+      $link = array(
+        'title' => 'configure',
+        'href' => 'block/' . $delta . '/configure',
+      );
+
+      $bean['operations']['data']['#links'] = array($link) + $bean['operations']['data']['#links'];
+    }
+  }
+
+  return $output;
+}
